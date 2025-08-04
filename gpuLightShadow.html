@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>GPU Shadow</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- core three.js -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true; // เปิดใช้งานเงา
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+        document.body.appendChild(renderer.domElement);
+
+        const scene = new THREE.Scene();
+
+        // กล้อง
+        const camera = new THREE.PerspectiveCamera(
+            75,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000
+        );
+        camera.position.set(0, 2, 5);
+        camera.lookAt(0, 0, 0);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+        // แสง
+        const ambientLight = new THREE.AmbientLight(0x505050, 1); // แก้ตัวใหญ่ A
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.7);
+        directionalLight.position.set(5, 10, 7.5);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 1024;
+        directionalLight.shadow.mapSize.height = 1024; // แก้คำสะกด height
+        scene.add(directionalLight);
+
+        // Create a PointLight
+        const pointLight = new THREE.PointLight(0xffff00, 3, 50);
+        pointLight.position.set(0, 10, 0); // Position the light 10 units above the scene
+        pointLight.castShadow = true;  // Enable shadows for the light
+
+        // Set shadow map size for better quality
+        pointLight.shadow.mapSize.width = 1024;  // Shadow map resolution
+        pointLight.shadow.mapSize.height = 1024;
+
+        // Set shadow camera near and far planes to control shadow range
+        pointLight.shadow.camera.near = 0.5;
+        pointLight.shadow.camera.far = 50;
+
+        // Add point light to the scene
+        scene.add(pointLight);
+
+        // สร้าง SpotLight
+        const spotLight = new THREE.SpotLight(0xff0000, 1);
+        spotLight.position.set(0, 10, 0);
+
+        // กำหนดเป้าหมาย (target) ให้ SpotLight หันไป
+        spotLight.target.position.set(-3, 0, -2.5); // ตัวอย่างให้ยิงไปยังจุดศูนย์กลางโลก (0,0,0)
+        scene.add(spotLight.target);
+
+        spotLight.angle = Math.PI / 24;
+        spotLight.penumbra = 0.2;
+        spotLight.castShadow = true;
+
+        scene.add(spotLight);
+
+        // สร้าง SpotLightG
+        const spotLightG = new THREE.SpotLight(0x00ff00, 1);
+        spotLightG.position.set(0, 10, 0);
+
+        // กำหนดเป้าหมาย (target) ให้ SpotLight หันไป
+        spotLightG.target.position.set(-2, 0, -2); // ตัวอย่างให้ยิงไปยังจุดศูนย์กลางโลก (0,0,0)
+        scene.add(spotLightG.target);
+
+        spotLightG.angle = Math.PI / 24;
+        spotLightG.penumbra = 0.2;
+        spotLightG.castShadow = true;
+
+        scene.add(spotLightG);
+
+        // สร้าง SpotLightB
+        const spotLightB = new THREE.SpotLight(0x0000FF, 1);
+        spotLightB.position.set(0, 10, 0);
+
+        // กำหนดเป้าหมาย (target) ให้ SpotLight หันไป
+        spotLightB.target.position.set(-2, 0, -3.5); // ตัวอย่างให้ยิงไปยังจุดศูนย์กลางโลก (0,0,0)
+        scene.add(spotLightB.target);
+
+        spotLightB.angle = Math.PI / 24;
+        spotLightB.penumbra = 0.2;
+        spotLightB.castShadow = true;
+
+        scene.add(spotLightB);
+
+
+        // พื้น
+        const planeGeometry = new THREE.PlaneGeometry(10, 10);
+        const planeMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
+        const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+        plane.rotation.x = -Math.PI / 2;
+        plane.position.y = 0;
+        plane.receiveShadow = true; // พื้นรับเงา
+        scene.add(plane);
+
+        // เพิ่ม helper แสดงแกน XYZ
+        scene.add(new THREE.AxesHelper(5));
+
+        // โหลดโมเดล OBJ
+        const loader = new THREE.OBJLoader();
+
+        loader.load('https://pollakritlu.github.io/kasert/Sonic.obj', function (object) {
+            object.traverse(function (child) {
+                if (child.isMesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                }
+            });
+            object.scale.set(0.5, 0.5, 0.5); // ปรับขนาดโมเดล Sonic
+            object.position.set(0, 0, 0);
+            scene.add(object);
+        }, undefined, function (error) {
+            console.error('Error loading OBJ:', error);
+        });
+
+        loader.load('https://pollakritlu.github.io/kasert/car.obj', function (object) {
+            object.traverse(function (child) {
+                if (child.isMesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                }
+            });
+            object.scale.set(0.5, 0.5, 0.5); // ปรับขนาดโมเดล Car
+            object.position.set(0, 0.2, 2);
+            scene.add(object);
+        }, undefined, function (error) {
+            console.error('Error loading OBJ:', error);
+        });
+
+
+        // Render loop
+        function animate() {
+            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // ปรับขนาดหน้าต่าง
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+
+</html>
