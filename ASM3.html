@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>RS6 Scene with HDRI + Textures + Loading</title>
+<style>
+    body { margin:0; overflow:hidden; background:#000; }
+    #loading {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: #000;
+        color: rgb(255, 255, 255);
+        font-family: monospace;
+        font-size: 20px;
+        z-index: 10;
+    }
+    /* 🎨 Custom lil-gui style */
+    .lil-gui {
+        --width: 280px;
+        background: rgba(20, 20, 20, 0.85) !important;
+        backdrop-filter: blur(8px);
+        border-radius: 10px !important;
+        font-family: "Segoe UI", sans-serif !important;
+        font-size: 14px !important;
+        color: #eee !important;
+    }
+    .lil-gui .title {
+        background: linear-gradient(90deg, #ff4d4d, #ff9933) !important;
+        color: #fff !important;
+        font-weight: bold;
+        text-shadow: 0 0 3px rgba(0,0,0,0.6);
+    }
+    .lil-gui input[type="range"] {
+        accent-color: #ff4d4d;
+    }
+</style>
+</head>
+<body>
+<div id="loading">Loading RS6 & City...</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lil-gui@0.17"></script>
+
+<script>
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 5000);
+camera.position.set(10,10,20);
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.target.set(0,0,0);
+controls.update();
+
+// Lights
+const ambient = new THREE.AmbientLight(0x404040,1);
+scene.add(ambient);
+
+const dirLight = new THREE.DirectionalLight(0xffffff,2);
+dirLight.position.set(5,10,5);
+dirLight.castShadow = true;
+scene.add(dirLight);
+
+// HDRI Background
+new THREE.RGBELoader().setDataType(THREE.UnsignedByteType)
+.load('https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/4k/cobblestone_street_night_4k.hdr', function(hdrTexture){
+    hdrTexture.mapping = THREE.EquirectangularReflectionMapping;
+    scene.background = hdrTexture;
+    scene.environment = hdrTexture;
+});
+
+const texLoader = new THREE.TextureLoader();
+
+// RS6 Textures (FULL LIST)
+const baseURL = "https://raw.githubusercontent.com/pollakritlu/com_graph/main/";
+const RS6_Textures = {
+    "wCalliperBadge_Front_LSG1.001": { map: baseURL + "wCalliperBadge_Front_LSG1_baseColor.png" },
+    "wCalliperExotic6_Front_LSG1.001": null,
+    "w3DWheel_Front_LSG1.001": {
+        map: baseURL + "w3DWheel_Front_LSG1_baseColor.png",
+        normalMap: baseURL + "w3DWheel_Front_LSG1_normal.png",
+        metalnessMap: baseURL + "w3DWheel_Front_LSG1_metallicRoughness.png"
+    },
+    "BBase_Geo_lodASG1.001": null,
+    "BEngine_Geo_lodASG1.001": {
+        map: baseURL + "BEngine_Geo_lodASG1_baseColor.png",
+        normalMap: baseURL + "BEngine_Geo_lodASG1_normal.png"
+    },
+    "BGrille2_Geo_lodASG1.001": {
+        map: baseURL + "BGrille2_Geo_lodASG1_baseColor.png",
+        normalMap: baseURL + "BGrille2_Geo_lodASG1_normal.png"
+    },
+    "BGrille3_Geo_lodASG1.001": {
+        map: baseURL + "BGrille3_Geo_lodASG1_baseColor.png",
+        normalMap: baseURL + "BGrille3_Geo_lodASG1_normal.png"
+    },
+    "BGrille5_Geo_lodASG1.001": {
+        map: baseURL + "BGrille5_Geo_lodASG1_baseColor.png",
+        normalMap: baseURL + "BGrille5_Geo_lodASG1_normal.png"
+    },
+    "BGrille6_Geo_lodASG1.001": {
+        map: baseURL + "BGrille6_Geo_lodASG1_baseColor.png",
+        normalMap: baseURL + "BGrille6_Geo_lodASG1_normal.png"
+    },
+    "BGrille7_Geo_lodASG1.001": {
+        map: baseURL + "BGrille7_Geo_lodASG1_baseColor.png",
+        normalMap: baseURL + "BGrille7_Geo_lodASG1_normal.png"
+    },
+    "BGrille9_Geo_lodASG1.001": {
+        map: baseURL + "BGrille9_Geo_lodASG1_baseColor.png",
+        normalMap: baseURL + "BGrille9_Geo_lodASG1_normal.png"
+    },
+    "BKit2_Badge_Geo_lodASG1.001": {
+        map: baseURL + "BKit2_Badge_Geo_lodASG1_baseColor.png",
+        normalMap: baseURL + "BKit2_Badge_Geo_lodASG1_normal.png"
+    },
+    "BKit2_Carbon1_Geo_lodASG1.001": {
+        map: baseURL + "BKit2_Carbon1_Geo_lodASG1_baseColor.png",
+        metalnessMap: baseURL + "BKit2_Carbon1_Geo_lodASG1_metallicRoughness.png"
+    },
+    "BKit2_Coloured_Geo_lodASG1.001": {
+        map: baseURL + "BKit2_Coloured_Geo_lodASG1_baseColor.png",
+        metalnessMap: baseURL + "BKit2_Coloured_Geo_lodASG1_metallicRoughness.png"
+    },
+    "BKit2_Grille1_Geo_lodASG1.001": {
+        map: baseURL + "BKit2_Grille1_Geo_lodASG1_baseColor.png",
+        normalMap: baseURL + "BKit2_Grille1_Geo_lodASG1_normal.png"
+    },
+    "BKit2_Grille4_Geo_lodASG1.001": {
+        map: baseURL + "BKit2_Grille4_Geo_lodASG1_baseColor.png",
+        normalMap: baseURL + "BKit2_Grille4_Geo_lodASG1_normal.png"
+    },
+    "BKit2_Grille8_Geo_lodASG1.001": {
+        map: baseURL + "BKit2_Grille8_Geo_lodASG1_baseColor.png",
+        normalMap: baseURL + "BKit2_Grille8_Geo_lodASG1_normal.png"
+    },
+    "BKit2_InteriorTilling_Geo_lodASG1.001": {
+        map: baseURL + "BKit2_InteriorTilling_Geo_lodASG1_baseColor.png",
+        normalMap: baseURL + "BKit2_InteriorTilling_Geo_lodASG1_normal.png"
+    },
+    "BKit2_Interior_Geo_lodASG1.001": {
+        map: baseURL + "BKit2_Interior_Geo_lodASG1_baseColor.png",
+        normalMap: baseURL + "BKit2_Interior_Geo_lodASG1_normal.png"
+    },
+    "BKit2_Textured_Geo_lodASG1.001": {
+        map: baseURL + "BKit2_Textured_Geo_lodASG1_baseColor.png"
+    },
+    "BKit2_Paint_Geo_lodASG1.001": null,
+    "BLight_Geo_lodASG1.001": {
+        map: baseURL + "BLight_Geo_lodASG1_baseColor.png",
+        metalnessMap: baseURL + "BLight_Geo_lodASG1_metallicRoughness.png"
+    },
+    "BManufacturerPlate_Geo_lodASG1.001": {
+        map: baseURL + "BManufacturerPlate_Geo_lodASG1_baseColor.png"
+    },
+    "BSeatBelt_Geo_lodASG1.001": null,
+    "BWindow_Geo_lodASG1.001": null,
+    "red_glass.001": null
+};
+
+// เก็บ materials ของ RS6
+const rs6Materials = [];
+
+// Load RS6
+const loaderRS6 = new THREE.OBJLoader();
+loaderRS6.load(
+  "https://pollakritlu.github.io/com_graph/2020_abt_sportline_audi_rs6-r.obj",
+  (object) => {
+    object.traverse((child)=>{
+        if(child.isMesh){
+            child.castShadow = true;
+            child.receiveShadow = true;
+            const tex = RS6_Textures[child.material.name];
+            if(tex){
+                child.material = new THREE.MeshStandardMaterial({
+                    map: tex.map ? texLoader.load(tex.map) : null,
+                    normalMap: tex.normalMap ? texLoader.load(tex.normalMap) : null,
+                    metalnessMap: tex.metalnessMap ? texLoader.load(tex.metalnessMap) : null,
+                    metalness: 0.5,
+                    roughness: 0.5
+                });
+            } else {
+                child.material = new THREE.MeshStandardMaterial({
+                    color: 0x888888, metalness: 0.3, roughness: 0.7
+                });
+                console.warn("❌ Fallback for:", child.material.name);
+            }
+            rs6Materials.push(child.material);
+        }
+    });
+    object.scale.set(100,100,100);
+    object.position.set(0,-0.10,0);
+    scene.add(object);
+    console.log("✅ RS6 Loaded");
+    document.getElementById("loading").style.display = "none";
+  }
+);
+
+// Load City
+const loaderCity = new THREE.OBJLoader();
+loaderCity.load("https://pollakritlu.github.io/com_graph/city.obj", (object)=>{
+    object.traverse((child)=>{
+        if(child.isMesh){
+            child.castShadow = true;
+            child.receiveShadow = true;
+            child.material = new THREE.MeshStandardMaterial({
+                color:0x888888, metalness:0.3, roughness:0.7
+            });
+        }
+    });
+    object.scale.set(0.5,0.5,0.5);
+    object.position.set(2.5, 0, 0);
+    scene.add(object);
+    console.log("✅ City Loaded");
+});
+
+// 🎛 GUI
+const gui = new lil.GUI({title: "🚗 RS6 Controls"});
+
+// Light Controls
+const lightFolder = gui.addFolder("💡 Light Controls");
+lightFolder.add(dirLight.position,'x',-10,10).name("Light X");
+lightFolder.add(dirLight.position,'y',0,20).name("Light Y");
+lightFolder.add(dirLight.position,'z',-10,10).name("Light Z");
+
+// Material Controls
+const matSettings = { metalness: 0.5, roughness: 0.5 };
+const matFolder = gui.addFolder("🎨 Material Controls");
+matFolder.add(matSettings, 'metalness', 0, 1).onChange((v) => {
+  rs6Materials.forEach(mat => mat.metalness = v);
+}).name("Metalness");
+matFolder.add(matSettings, 'roughness', 0, 1).onChange((v) => {
+  rs6Materials.forEach(mat => mat.roughness = v);
+}).name("Roughness");
+
+// Animate
+function animate(){
+    renderer.render(scene,camera);
+    requestAnimationFrame(animate);
+}
+animate();
+</script>
+</body>
+</html>
