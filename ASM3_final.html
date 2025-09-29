@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>RS6 + City Scene</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+        }
+
+        #loading {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+            color: #fff;
+            font-family: monospace;
+            font-size: 20px;
+            z-index: 10;
+        }
+
+        /* 🎨 Custom GUI Style (Balanced) */
+        .lil-gui {
+            --width: 300px;
+            background: rgba(25, 25, 25, 0.9) !important;
+            backdrop-filter: blur(6px);
+            border-radius: 10px !important;
+            font-family: "Segoe UI", "Poppins", sans-serif !important;
+            font-size: 14px !important;
+            color: #f0f0f0 !important;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* Folder Header */
+        .lil-gui .title {
+            background: linear-gradient(90deg, #1e3c72, #2a5298) !important;
+            color: #fff !important;
+            font-weight: 600;
+            text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+            padding: 5px 10px !important;
+            border-radius: 8px 8px 0 0 !important;
+        }
+
+        /* Slider */
+        .lil-gui input[type="range"] {
+            accent-color: #2a82ff !important;
+            cursor: pointer;
+        }
+
+        /* Checkbox */
+        .lil-gui input[type="checkbox"] {
+            accent-color: #2a82ff !important;
+            transform: scale(1.1);
+        }
+
+        /* Dropdown */
+        .lil-gui select {
+            background: #222 !important;
+            color: #fff !important;
+            border-radius: 6px;
+            padding: 4px;
+            border: 1px solid #444;
+        }
+
+        /* Input Number/Text */
+        .lil-gui input[type="number"],
+        .lil-gui input[type="text"] {
+            background: #222 !important;
+            color: #fff !important;
+            border-radius: 6px;
+            border: 1px solid #444;
+            padding: 3px 6px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loading">Loading RS6 & City...</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lil-gui@0.17"></script>
+
+    <script>
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 5000);
+        camera.position.set(10, 10, 20);
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.target.set(0, 0, 0); controls.update();
+
+        scene.add(new THREE.AmbientLight(0x404040, 1));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 2);
+        dirLight.position.set(5, 10, 5); dirLight.castShadow = true;
+        scene.add(dirLight);
+
+        // HDRI
+        new THREE.RGBELoader().setDataType(THREE.UnsignedByteType)
+            .load('https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/4k/cobblestone_street_night_4k.hdr', (hdr) => {
+                hdr.mapping = THREE.EquirectangularReflectionMapping;
+                scene.environment = hdr; scene.background = hdr;
+            });
+
+        const texLoader = new THREE.TextureLoader();
+        const baseURL = "https://raw.githubusercontent.com/pollakritlu/com_graph/main/";
+
+        // helper
+        function matFrom(tex) {
+            return new THREE.MeshStandardMaterial({
+                map: tex?.map ? texLoader.load(tex.map) : null,
+                normalMap: tex?.normalMap ? texLoader.load(tex.normalMap) : null,
+                metalnessMap: tex?.metalnessMap ? texLoader.load(tex.metalnessMap) : null,
+                metalness: 0.5, roughness: 0.5
+            });
+        }
+
+        // RS6 Textures
+        const RS6_Textures = {
+            "wCalliperBadge_Front_LSG1.001": { map: baseURL + "wCalliperBadge_Front_LSG1_baseColor.png" },
+            "wCalliperExotic6_Front_LSG1.001": null,
+            "w3DWheel_Front_LSG1.001": {
+                map: baseURL + "w3DWheel_Front_LSG1_baseColor.png",
+                normalMap: baseURL + "w3DWheel_Front_LSG1_normal.png",
+                metalnessMap: baseURL + "w3DWheel_Front_LSG1_metallicRoughness.png"
+            },
+            "BBase_Geo_lodASG1.001": null,
+            "BEngine_Geo_lodASG1.001": {
+                map: baseURL + "BEngine_Geo_lodASG1_baseColor.png",
+                normalMap: baseURL + "BEngine_Geo_lodASG1_normal.png"
+            },
+            "BGrille2_Geo_lodASG1.001": { map: baseURL + "BGrille2_Geo_lodASG1_baseColor.png", normalMap: baseURL + "BGrille2_Geo_lodASG1_normal.png" },
+            "BGrille3_Geo_lodASG1.001": { map: baseURL + "BGrille3_Geo_lodASG1_baseColor.png", normalMap: baseURL + "BGrille3_Geo_lodASG1_normal.png" },
+            "BGrille5_Geo_lodASG1.001": { map: baseURL + "BGrille5_Geo_lodASG1_baseColor.png", normalMap: baseURL + "BGrille5_Geo_lodASG1_normal.png" },
+            "BGrille6_Geo_lodASG1.001": { map: baseURL + "BGrille6_Geo_lodASG1_baseColor.png", normalMap: baseURL + "BGrille6_Geo_lodASG1_normal.png" },
+            "BGrille7_Geo_lodASG1.001": { map: baseURL + "BGrille7_Geo_lodASG1_baseColor.png", normalMap: baseURL + "BGrille7_Geo_lodASG1_normal.png" },
+            "BGrille9_Geo_lodASG1.001": { map: baseURL + "BGrille9_Geo_lodASG1_baseColor.png", normalMap: baseURL + "BGrille9_Geo_lodASG1_normal.png" },
+            "BKit2_Badge_Geo_lodASG1.001": { map: baseURL + "BKit2_Badge_Geo_lodASG1_baseColor.png", normalMap: baseURL + "BKit2_Badge_Geo_lodASG1_normal.png" },
+            "BKit2_Carbon1_Geo_lodASG1.001": { map: baseURL + "BKit2_Carbon1_Geo_lodASG1_baseColor.png", metalnessMap: baseURL + "BKit2_Carbon1_Geo_lodASG1_metallicRoughness.png" },
+            "BKit2_Coloured_Geo_lodASG1.001": { map: baseURL + "BKit2_Coloured_Geo_lodASG1_baseColor.png", metalnessMap: baseURL + "BKit2_Coloured_Geo_lodASG1_metallicRoughness.png" },
+            "BKit2_Grille1_Geo_lodASG1.001": { map: baseURL + "BKit2_Grille1_Geo_lodASG1_baseColor.png", normalMap: baseURL + "BKit2_Grille1_Geo_lodASG1_normal.png" },
+            "BKit2_Grille4_Geo_lodASG1.001": { map: baseURL + "BKit2_Grille4_Geo_lodASG1_baseColor.png", normalMap: baseURL + "BKit2_Grille4_Geo_lodASG1_normal.png" },
+            "BKit2_Grille8_Geo_lodASG1.001": { map: baseURL + "BKit2_Grille8_Geo_lodASG1_baseColor.png", normalMap: baseURL + "BKit2_Grille8_Geo_lodASG1_normal.png" },
+            "BKit2_InteriorTilling_Geo_lodASG1.001": { map: baseURL + "BKit2_InteriorTilling_Geo_lodASG1_baseColor.png", normalMap: baseURL + "BKit2_InteriorTilling_Geo_lodASG1_normal.png" },
+            "BKit2_Interior_Geo_lodASG1.001": { map: baseURL + "BKit2_Interior_Geo_lodASG1_baseColor.png", normalMap: baseURL + "BKit2_Interior_Geo_lodASG1_normal.png" },
+            "BKit2_Textured_Geo_lodASG1.001": { map: baseURL + "BKit2_Textured_Geo_lodASG1_baseColor.png" },
+            "BKit2_Paint_Geo_lodASG1.001": null,
+            "BLight_Geo_lodASG1.001": { map: baseURL + "BLight_Geo_lodASG1_baseColor.png", metalnessMap: baseURL + "BLight_Geo_lodASG1_metallicRoughness.png" },
+            "BManufacturerPlate_Geo_lodASG1.001": { map: baseURL + "BManufacturerPlate_Geo_lodASG1_baseColor.png" },
+            "BSeatBelt_Geo_lodASG1.001": null,
+            "BWindow_Geo_lodASG1.001": null,
+            "red_glass.001": null
+        };
+
+        // City Textures
+        const City_Textures = {
+            "ApartmentAA1": {
+                map: baseURL + "ApartmentAA1_baseColor.jpeg",
+                normalMap: baseURL + "ApartmentAA1_normal.jpeg"
+            },
+            "ApartmentAA2": {
+                map: baseURL + "ApartmentAA2_baseColor.jpeg",
+                normalMap: baseURL + "ApartmentAA2_normal.jpeg"
+            },
+            "ApartmentAA3": {
+                map: baseURL + "ApartmentAA3_baseColor.jpeg",
+                normalMap: baseURL + "ApartmentAA3_normal.jpeg"
+            },
+            "ApartmentAA": {
+                map: baseURL + "ApartmentAA_baseColor.jpeg",
+                normalMap: baseURL + "ApartmentAA_normal.jpeg"
+            },
+            "Aircon": {
+                map: baseURL + "Aircon_baseColor.jpeg",
+                normalMap: baseURL + "Aircon_normal.jpeg"
+            },
+            "FactoryAH": {
+                map: baseURL + "FactoryAH_baseColor.jpeg",
+                normalMap: baseURL + "FactoryAH_normal.jpeg"
+            },
+            "FactoryAH1": {
+                map: baseURL + "FactoryAH1_baseColor.jpeg",
+                normalMap: baseURL + "FactoryAH1_normal.jpeg"
+            },
+            "I_Body_01": {
+                map: baseURL + "I_Body_01_baseColor.jpeg",
+                normalMap: baseURL + "I_Body_01_normal.jpeg"
+            },
+            "I_Body_02": {
+                map: baseURL + "I_Body_02_baseColor.jpeg",
+                normalMap: baseURL + "I_Body_02_normal.jpeg"
+            },
+            "I_Body_03": {
+                map: baseURL + "I_Body_03_baseColor.jpeg",
+                normalMap: baseURL + "I_Body_03_normal.jpeg"
+            },
+            "I_Body_04": {
+                map: baseURL + "I_Body_04_baseColor.jpeg",
+                normalMap: baseURL + "I_Body_04_normal.jpeg"
+            },
+            "CuxiA1": {
+                map: baseURL + "CuxiA1_baseColor.jpeg",
+                normalMap: baseURL + "CuxiA1_normal.jpeg"
+            },
+            "CuxiA": {
+                map: baseURL + "CuxiA_baseColor.png",
+                normalMap: baseURL + "CuxiA_normal.jpeg",
+                metalnessMap: baseURL + "CuxiA_specularf0.png"
+            },
+            "TWAltisA": {
+                map: baseURL + "TWAltisA_baseColor.jpeg",
+                normalMap: baseURL + "TWAltisA_normal.jpeg"
+            },
+            "TWAltisA1": {
+                map: baseURL + "TWAltisA1_baseColor.jpeg",
+                normalMap: baseURL + "TWAltisA1_normal.jpeg"
+            },
+            "TWAltisA2": {
+                map: baseURL + "TWAltisA2_baseColor.jpeg",
+                normalMap: baseURL + "TWAltisA2_normal.jpeg"
+            },
+            "TWAltisA3": {
+                map: baseURL + "TWAltisA3_baseColor.jpeg",
+                normalMap: baseURL + "TWAltisA3_normal.jpeg"
+            },
+            "Lbtire_01_1": {
+                map: baseURL + "Lbtire_01_1_baseColor.jpeg",
+                normalMap: baseURL + "Lbtire_01_1_normal.jpeg"
+            },
+            "Lftire_01": {
+                map: baseURL + "Lftire_01_baseColor.jpeg",
+                normalMap: baseURL + "Lftire_01_normal.jpeg"
+            },
+            "Lftire_02": {
+                map: baseURL + "Lftire_02_baseColor.jpeg",
+                normalMap: baseURL + "Lftire_02_normal.jpeg"
+            },
+            "I_Wheel_01": {
+                map: baseURL + "I_Wheel_01_baseColor.jpeg",
+                normalMap: baseURL + "I_Wheel_01_normal.jpeg"
+            },
+            "I_Wheel_02": {
+                map: baseURL + "I_Wheel_02_baseColor.jpeg",
+                normalMap: baseURL + "I_Wheel_02_normal.jpeg"
+            },
+            "I_Wheel_03": {
+                map: baseURL + "I_Wheel_03_baseColor.jpeg",
+                normalMap: baseURL + "I_Wheel_03_normal.jpeg"
+            },
+            "I_Wheel_04": {
+                map: baseURL + "I_Wheel_04_baseColor.jpeg",
+                normalMap: baseURL + "I_Wheel_04_normal.jpeg"
+            },
+            "I_Wheel_05": {
+                map: baseURL + "I_Wheel_05_baseColor.jpeg",
+                normalMap: baseURL + "I_Wheel_05_normal.jpeg"
+            },
+            "Watertower": {
+                map: baseURL + "Watertower_baseColor.jpeg",
+                normalMap: baseURL + "Watertower_normal.jpeg"
+            },
+            "IronGateB": {
+                map: baseURL + "IronGateB_baseColor.jpeg",
+                normalMap: baseURL + "IronGateB_normal.jpeg"
+            },
+            "IronGateC": {
+                map: baseURL + "IronGateC_baseColor.jpeg",
+                normalMap: baseURL + "IronGateC_normal.jpeg"
+            },
+            "IronGateD": {
+                map: baseURL + "IronGateD_baseColor.jpeg",
+                normalMap: baseURL + "IronGateD_normal.jpeg"
+            },
+            "aptground": {
+                map: baseURL + "aptground_baseColor.jpeg",
+                normalMap: baseURL + "aptground_normal.jpeg"
+            },
+            "ringbox": {
+                map: baseURL + "ringbox_baseColor.jpeg",
+                normalMap: baseURL + "ringbox_normal.jpeg"
+            },
+            "rollingdoor": {
+                map: baseURL + "rollingdoor_baseColor.jpeg",
+                normalMap: baseURL + "rollingdoor_normal.jpeg"
+            },
+            "potplant": {
+                map: baseURL + "potplant_baseColor.jpeg",
+                normalMap: baseURL + "potplant_normal.jpeg"
+            },
+            "leaves": {
+                map: baseURL + "leaves_baseColor.jpeg",
+                normalMap: baseURL + "leaves_normal.jpeg"
+            },
+            "Material_1": null,
+            "Material_3": null,
+            "Material_4": null,
+            "Material_7": null,
+            "Material_12": null,
+            "Material_13": null,
+            "Material_14": null,
+            "Material_41": null,
+            "Material_42": null,
+            "Material_43": null,
+            "Material_22861": null,
+            "Standard_7": null,
+            "RStop01": null,
+            "i_taiwanoldapt_2_001": null,
+            "i_taiwanoldapt_2_001_022": null,
+            "I_Taiwanoldapt_2_001_04": null,
+            "i_taiwanoldapt_2_001_03": null,
+            "i_taiwanoldapt_2_001_001": null,
+            "i_taiwanoldapt_2_001_01": null,
+            "I_Taiwanoldapt_2_001_02": null,
+            "i_taiwanoldapt_2_002": null,
+            "i_taiwanoldapt_2_001_002": null,
+            "i_taiwanoldapt_2_001_05": null,
+            "I_Taiwanoldapt_2_001_06": null,
+            "i_taiwanoldapt_2_003": null,
+            "I_Electric_0_001": null,
+            "I_Electric_0_001_02": null,
+            "ironflame": null
+        };
+
+        // Load RS6
+        new THREE.OBJLoader().load("https://pollakritlu.github.io/com_graph/2020_abt_sportline_audi_rs6-r.obj", (obj) => {
+            obj.traverse(c => {
+                if (c.isMesh) {
+                    c.castShadow = c.receiveShadow = true;
+                    const tex = RS6_Textures[c.material.name];
+                    c.material = tex ? matFrom(tex) : new THREE.MeshStandardMaterial({ color: 0x888888 });
+                }
+            });
+            obj.scale.set(100, 100, 100); obj.position.set(0, -0.1, 0);
+            obj.name = "RS6_OBJ";
+            scene.add(obj);
+            document.getElementById("loading").style.display = "none";
+        });
+
+        // Load City
+        new THREE.OBJLoader().load("https://pollakritlu.github.io/com_graph/city.obj", (obj) => {
+            obj.traverse(c => {
+                if (c.isMesh) {
+                    c.castShadow = c.receiveShadow = true;
+                    const tex = City_Textures[c.material.name];
+                    c.material = tex ? matFrom(tex) : new THREE.MeshStandardMaterial({ color: 0x666666 });
+                }
+            });
+            obj.scale.set(0.5, 0.5, 0.5); obj.position.set(2.5, 0, 0);
+            obj.name = "CITY_OBJ";
+            scene.add(obj);
+        });
+
+        // 🎛 GUI
+        const gui = new lil.GUI({ title: "⚙️ Scene Controls" });
+
+        // ---------- Light Controls ----------
+        const lightFolder = gui.addFolder("💡 Light");
+        lightFolder.add(dirLight.position, "x", -20, 20).name("DirLight X");
+        lightFolder.add(dirLight.position, "y", 0, 40).name("DirLight Y");
+        lightFolder.add(dirLight.position, "z", -20, 20).name("DirLight Z");
+        lightFolder.add(dirLight, "intensity", 0, 5, 0.1).name("Intensity");
+        lightFolder.addColor({ color: "#ffffff" }, "color").name("Color").onChange(v => {
+            dirLight.color.set(v);
+        });
+
+        // ---------- Material Controls ----------
+        const matSettings = {
+            metalness: 0.5,
+            roughness: 0.5
+        };
+        const matFolder = gui.addFolder("🎨 Materials");
+        matFolder.add(matSettings, "metalness", 0, 1, 0.01).onChange(v => {
+            scene.traverse(obj => {
+                if (obj.isMesh && obj.material instanceof THREE.MeshStandardMaterial) {
+                    obj.material.metalness = v;
+                }
+            });
+        });
+        matFolder.add(matSettings, "roughness", 0, 1, 0.01).onChange(v => {
+            scene.traverse(obj => {
+                if (obj.isMesh && obj.material instanceof THREE.MeshStandardMaterial) {
+                    obj.material.roughness = v;
+                }
+            });
+        });
+
+        // ---------- Renderer Controls ----------
+        const renderFolder = gui.addFolder("🖥 Renderer");
+        renderFolder.add(renderer, "toneMappingExposure", 0, 2, 0.01).name("Exposure");
+        const toneMappingOptions = {
+            None: THREE.NoToneMapping,
+            Linear: THREE.LinearToneMapping,
+            Reinhard: THREE.ReinhardToneMapping,
+            Cineon: THREE.CineonToneMapping,
+            ACESFilmic: THREE.ACESFilmicToneMapping
+        };
+        renderFolder.add({ toneMapping: "ACESFilmic" }, "toneMapping", Object.keys(toneMappingOptions))
+            .name("Tone Mapping")
+            .onChange(key => {
+                renderer.toneMapping = toneMappingOptions[key];
+            });
+
+        // ---------- Object Visibility ----------
+        const objFolder = gui.addFolder("🚗 Objects");
+        const objectsSettings = { RS6: true, City: true };
+        objFolder.add(objectsSettings, "RS6").name("Show RS6").onChange(v => {
+            const rs6 = scene.getObjectByName("RS6_OBJ");
+            if (rs6) rs6.visible = v;
+        });
+        objFolder.add(objectsSettings, "City").name("Show City").onChange(v => {
+            const city = scene.getObjectByName("CITY_OBJ");
+            if (city) city.visible = v;
+        });
+
+        // Animate
+        (function anim() {
+            renderer.render(scene, camera);
+            requestAnimationFrame(anim);
+        })();
+    </script>
+</body>
+
+</html>
