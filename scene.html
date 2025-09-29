@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>scene</title>
+    <style>
+        /* Body Style */
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background: linear-gradient(135deg, #3498db, #2ecc71); /* Gradient background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        /* Make the canvas fill the entire window */
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <!-- Include Three.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <!-- Include OrbitControls for camera movement -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+    <script>
+      (() => {
+        // --- Create Scene ---
+        const scene = new THREE.Scene();
+
+        // --- Create Perspective Camera ---
+        const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 100);
+        camera.position.set(0, 1.5, 4);  // Adjusted to give better viewing angle
+
+        // --- Create Renderer ---
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(innerWidth, innerHeight);  // Set renderer size to full window
+        document.body.appendChild(renderer.domElement);  // Append renderer canvas to the body
+
+        // --- Set up Controls (mouse to move the camera) ---
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.target.set(0, 0.5, 0);  // Set the camera's target position
+        controls.enableDamping = true;  // Enable smooth camera movement
+        controls.dampingFactor = 0.25;  // Set the damping factor (smoothness)
+        controls.screenSpacePanning = false;  // Disable camera panning in screen space
+
+        // --- Create Grid Helper (for better reference) ---
+        const grid = new THREE.GridHelper(10, 10, 0x555555, 0x222222); // Slightly darker grid for aesthetics
+        grid.position.y = -0.001;  // Slightly position the grid beneath the ground level
+        scene.add(grid);  // Add grid to the scene
+
+        // --- Create a Dark Red Box ---
+        const box = new THREE.Mesh(
+          new THREE.BoxGeometry(1, 1, 1),  // Box geometry with size 1x1x1
+          new THREE.MeshStandardMaterial({ color: 0x8B0000, metalness: 0.6, roughness: 0.4 }) // Dark red color with some material properties
+        );
+        box.position.set(0, 0.5, 0);  // Set position of the box
+        scene.add(box);  // Add box to the scene
+
+        // --- Add Ambient Light (soft lighting for better visibility) ---
+        const ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.3);  // Soft light to illuminate everything
+        scene.add(ambientLight);
+
+        // --- Add Directional Light (to create shadows and highlights) ---
+        const directionalLight = new THREE.DirectionalLight(0xFFFFFF, 1);  // White light with high intensity
+        directionalLight.position.set(2, 4, 2);  // Set light position
+        scene.add(directionalLight);
+
+        // --- Animation Loop ---
+        function animate() {
+          requestAnimationFrame(animate);  // Request the next frame
+          controls.update();  // Update camera controls
+          renderer.render(scene, camera);  // Render the scene with the camera
+        }
+        animate();  // Start the animation loop
+
+        // --- Handle Window Resize ---
+        window.addEventListener('resize', () => {
+          camera.aspect = innerWidth / innerHeight;  // Update camera aspect ratio
+          camera.updateProjectionMatrix();  // Recalculate camera projection matrix
+          renderer.setSize(innerWidth, innerHeight);  // Update renderer size
+        });
+      })();
+    </script>
+</body>
+</html>
